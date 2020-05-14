@@ -2,12 +2,10 @@ package pages;
 
 import org.openqa.selenium.WebDriver;
 
-public class Baseclass 
-{
+public class BaseClass {
 	public static WebDriver driver;
-	
-	public Baseclass(WebDriver driver){
+	public static boolean status=true;
+	public BaseClass(WebDriver driver){
 		this.driver=driver;
 	}
-	
 }

@@ -1,301 +1,320 @@
 package testcases;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.log4j.PropertyConfigurator;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.testng.ITestResult;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Optional;
+import org.testng.annotations.Parameters;
+import org.testng.annotations.Test;
 
-import pages.Baseclass;
+import com.aventstack.extentreports.ExtentTest;
+import com.aventstack.extentreports.MediaEntityBuilder;
+import com.aventstack.extentreports.Status;
+
+import pages.BaseClass;
+import pages.Suite;
 import utilities.CommonMethods;
+import utilities.Constant;
+import utilities.ExcelConfig;
+import utilities.Log;
 import utilities.Utils;
+import utilities.YamlConfig;
 
-public class TC_05_AddandVerifyUser {
+public class TC_05_AddandVerifyUser extends Suite{
+	private static final String sheetName="AddandVerifyUser";
+	private static int rowNum_TestCases=0;
+	private static String screenshotPath;
+	private static int rowNum_AddUser=0;
+	private static WebDriver driver;
+	private static ExtentTest logger;
+	private static String testName;
+	
+	@BeforeClass
+	public void execute_PreRequisite() throws Exception{
+		String projectPath=System.getProperty("user.dir");
+		PropertyConfigurator.configure(projectPath+"\\test-resources\\Log4j.properties");
 
-	public static void main(String[] args) throws Exception {
+		screenshotPath= reportPath+"\\Screenshots\\";					
+		YamlConfig.setYamlFile(projectPath+"\\test-resources\\test-info.yaml");
+		ExcelConfig.setExcelFile(projectPath+"\\test-resources\\TestData.xlsx");
+	}
+	
+	@Parameters({"testID"})
+	@BeforeMethod
+	public void getTestID(@Optional(Constant.TestCaseID) String testID) throws Exception{
 		
-		WebDriver driver= Utils.openBrowser("chrome");
-		new Baseclass(driver);
+		testName=Thread.currentThread().getStackTrace()[1].getClassName().substring(Thread.currentThread().getStackTrace()[1].getClassName().indexOf('.')+1)+"_"+testID;
+		Log.startTestCase(testName);
+		logger=report.createTest(testName);		
 		
-		driver.get("https://seleniumtesters-trials6562.orangehrmlive.com/auth/login");
-		WebDriverWait wait= new WebDriverWait(driver,30);
-		int rownuber= 3;
+		rowNum_TestCases=ExcelConfig.getRowContains(testID, Constant.col_testcaseID, "TestCases");
+		Log.info(testID+" Row Number in TestCases sheet is :"+rowNum_TestCases);
+		logger.log(Status.INFO, "Row Number in TestCases sheet is :"+rowNum_TestCases);
 		
-		String project_path= System.getProperty("user.dir");
-		FileInputStream file_stream= new FileInputStream(project_path+"\\test-resources\\TestData01.xlsx");
-		XSSFWorkbook x_book= new XSSFWorkbook(file_stream);
-		XSSFSheet x_sheet= x_book.getSheet("AddandVerifyUser"); 
+		rowNum_AddUser=ExcelConfig.getRowContains(testID, Constant.col_testcaseID, sheetName);
+		Log.info(testID+" Row Number in AddAndVerifyUser sheet is :"+rowNum_AddUser);
+		logger.log(Status.INFO, "Row Number in AddAndVerifyUser sheet is :"+rowNum_AddUser);
+	}
+	
+	@Test
+	public static void test_AddUser() throws Exception {
+		String browser=ExcelConfig.getCellData(rowNum_TestCases, Constant.col_browser, "TestCases");
+		driver = Utils.openBrowser(browser);
+		new BaseClass(driver);
+		WebDriverWait wait = new WebDriverWait(driver, 30);
 		
+		String appUrl=YamlConfig.getYamlData("url");
+		driver.get(appUrl);
+		Log.info(appUrl + " is loaded");
+		Utils.takeScreenshot(testName+"_LoginPage_Admin", screenshotPath);
+		logger.log(Status.INFO, appUrl + " is loaded", MediaEntityBuilder.createScreenCaptureFromPath(screenshotPath+testName+"_LoginPage_Admin.jpg").build());
 		
-		
-		//Title of Page
+		//title
 		String title = driver.getTitle();
-		System.out.println("Title of website is .." + title);
-		if (title.equalsIgnoreCase("OrangeHRM")) {
-			System.out.println("Title is correct");
+		Log.info("Title of website is .." + title);
+		if (title.equalsIgnoreCase("orangehrm")) {
+			Log.info("Title of the OrangeHRM application is matched");
+			logger.log(Status.INFO, "Title of the OrangeHRM application is matched");
 		} else {
-			System.out.println("Title is Wrong");
+			Log.info("Title of the OrangeHRM application is not matched");
+			logger.log(Status.INFO, "Title of the OrangeHRM application is not matched");
+			BaseClass.status=false;
 			throw new Exception();
 		}
 		
-		String userName= x_sheet.getRow(rownuber).getCell(3).getStringCellValue();
-		String password=x_sheet.getRow(rownuber).getCell(4).getStringCellValue();
-		CommonMethods.orangeHRMLogin(userName,password);
-		
-		// Verify the Dashboard availability on Home Page (If not available make test
-		// case fail)
+		String userName=ExcelConfig.getCellData(rowNum_AddUser, Constant.col_username, sheetName);
+		String password = ExcelConfig.getCellData(rowNum_AddUser, Constant.col_password, sheetName);
+		CommonMethods.orangeHRMLogin(userName, password);
+
+		// Verify the Dashboard availability on Home Page (If not available make test case fail)
 
 		if (driver.findElement(By.xpath("//li[contains(text(),'Dashboard')]")).isDisplayed()) {
-			System.out.println("Dashboard availability is a present");
+				Log.info("Dashboard is present on Homepage");
+				Utils.takeScreenshot(testName+"_HomePage", screenshotPath);
+				logger.log(Status.INFO, "Orange HRM application is logged in", MediaEntityBuilder.createScreenCaptureFromPath(screenshotPath+testName+"_HomePage.jpg").build());
 		} else {
-
-			System.out.println("Dashboard availability is not present");
-			throw new Exception();
+				Log.info("Dashboard is not present on Homepage");
+				BaseClass.status=false;
+				throw new Exception();
 		}
-
-		// Take a Screenshot and Append the screenshot name with the
-		// OrangeHRMLogin_Admin_Timestamp
-
-		SimpleDateFormat st = new SimpleDateFormat("ddMMyyyy hhmmss");
-		Date date = new Date();
-		String timestamp = st.format(date);
-
-		TakesScreenshot ts1 = (TakesScreenshot) driver;
-		File source1 = ts1.getScreenshotAs(OutputType.FILE);
-		File destination1 = new File(
-				"C:\\Selenium Catalogue\\Documents\\Screenshots\\OrangeHRMLogin_Admin_" + timestamp + ".jpg");
-		FileUtils.copyFile(source1, destination1);
-		System.out.println("Screenshot OrangeHRMLogin_Admin_Timestamp is take it.");
 
 		// Click on Admin
 		driver.findElement(By.xpath("//li[@id='menu_admin_viewAdminModule']/a")).click();
-		System.out.println("Admin is clicked.");
+		Log.info("Admin link is clicked");
+		logger.log(Status.INFO, "Admin link is clicked");
 
 		// Click on User management
 		driver.findElement(By.xpath("//span[contains(text(),'User Management')]")).click();
-		System.out.println("User management is clicked");
+		Log.info("User management link is clicked");
+		logger.log(Status.INFO, "User management link is clicked");
 
 		// Click on Users
 		driver.findElement(By.xpath("(//span[contains(text(),'Users')])[1]")).click();
-		System.out.println("users is clicked");
+		Log.info("Users link is clicked");
+		logger.log(Status.INFO, "Users link is clicked");
 
-		// Get all the employeenames from the page and store in a Array variable.
-
-		String emp_names[] = new String[50];
-		List<WebElement> employeenames = driver
-				.findElements(By.xpath("//table[@class='highlight bordered']/tbody/tr/td[4]/ng-include/span"));
-		int number = 0;
+		// Get all the employee names from the page and store in a Array variable.
+		String employee[] = new String[50];
+		List<WebElement> employeenames = driver.findElements(By.xpath("//table[@class='highlight bordered']/tbody/tr/td[4]/ng-include/span"));
+		int empNo = 0;
 		for (WebElement name : employeenames) {
-			String employee = name.getText();
-			emp_names[number] = employee;
-			number++;
+			String employeename = name.getText();
+			employee[empNo] = employeename;
+			empNo++;
 		}
-		/*for (int j = 0; j < 50; j++) {
-			System.out.println(emp_names[j]);
-		}*/
-
-		// Using the Random class of the Java, get the Random Number and get the
-		// UserName text value
-		// from that random number position in above array store in employee name
-		// variable
-		Random random_number = new Random();
-
-		int ra_namber = random_number.nextInt(50);
-		String finalemployeename = emp_names[ra_namber];
-		System.out.println("final employee's name" + finalemployeename);
-
-		String PartialEmployeeName = finalemployeename.split(" ")[0];
-		System.out.println("Employee name is confirmed.");
+		Log.info("All Employee Names are stored in the Array");
+		Utils.takeScreenshot(testName+"Users", screenshotPath);
+		logger.log(Status.INFO, "All Employee Names are stored in the Array", MediaEntityBuilder.createScreenCaptureFromPath(screenshotPath+testName+"_Users.jpg").build());
 		
-		// write data in excel
-		
-		
+		//Get the Random Employee Name from the employee array
+		Random empRandom = new Random();
+		int empRandomNo = empRandom.nextInt(50);
+		String randomEmployeeName = employee[empRandomNo];
+		Log.info("Random Employee Name from array is" + randomEmployeeName);
+		logger.log(Status.INFO, "Random Employee Name from array is" + randomEmployeeName);
 	
-		
-		
-		
+
 		// Click on + icon on right top corner of the page
 		driver.findElement(By.xpath("//div[@ng-if='systemUsersCtrl.permissions.create']/a/i")).click();
-		System.out.println("Pluse button is clicked");
-		Thread.sleep(2000);
-		
+		Log.info("+ button is clicked");
+		logger.log(Status.INFO, "+ button is clicked");
+
 		// Enter the above EmployeeName  variable data in EmployeeName text
-		driver.findElement(By.xpath("//input[@id='selectedEmployee_value']")).sendKeys(PartialEmployeeName);
+		String partialEmployeeName = randomEmployeeName.split(" ")[0];
+		driver.findElement(By.xpath("//input[@id='selectedEmployee_value']")).sendKeys(partialEmployeeName);
 		Thread.sleep(1000);
 		driver.findElement(By.xpath("//input[@id='selectedEmployee_value']")).sendKeys(Keys.ARROW_DOWN);
 		Thread.sleep(1000);
 		driver.findElement(By.xpath("//input[@id='selectedEmployee_value']")).sendKeys(Keys.ENTER);
-		System.out.println(PartialEmployeeName + "is entered as username");
+		Log.info(partialEmployeeName + "is entered as username");
+		logger.log(Status.INFO, partialEmployeeName + "is entered as username");
 
-		// Split the above EmployeeName using space/byusing (dot symbol), get the
-		// FirstName of the
-		// String and store in Partial Employee Name
+		//Employee Name
+		String username = RandomStringUtils.randomAlphabetic(4);
+		username = partialEmployeeName + username;
+		Log.info("User Name is :"+username);
+		logger.log(Status.INFO, "User Name is :"+username);
+		driver.findElement(By.xpath("(//sf-decorator[@ng-repeat='item in form.items'])[3]/div/input")).sendKeys(username);
+		Log.info(username+ " is entered as Employee Name");
+		logger.log(Status.INFO, username+ " is entered as Employee Name");
 
-		// Enter the Username as above "Partial EmployeeName" and append with
-		// using the RandomStringUtils generate '4' letter.
-
-		RandomStringUtils rst = new RandomStringUtils();
-		String username = rst.randomAlphabetic(4);
-		username = PartialEmployeeName + username;
-		System.out.println("Employee name is "+ username);
-		
-		
-		
-		driver.findElement(By.xpath("(//sf-decorator[@ng-repeat='item in form.items'])[3]/div/input"))
-				.sendKeys(username);
-		System.out.println(username+" is entered as username.");
-		Thread.sleep(2000);
-		
 		// Select the ESS Role as Default ESS Role
-		String ess=x_sheet.getRow(rownuber).getCell(5).getStringCellValue();
+		String ess=ExcelConfig.getCellData(rowNum_AddUser, Constant.col_essRole, sheetName);
 		driver.findElement(By.xpath("(//div[@class='select-wrapper initialized'])[1]/input")).click();
-		wait.until(ExpectedConditions.elementToBeClickable(By.xpath("(//div[@class='select-wrapper initialized'])[1]/ul/li[2]/span[text()='"+ess+"']")));
-		driver.findElement(By.xpath("(//div[@class='select-wrapper initialized'])[1]/ul/li[2]/span[text()='"+ess+"']")).click();
-		System.out.println("ESS role selected");
-		System.out.println(ess+ " is selected as ESS Role.");
-		
+		Log.info("ESS Role drop-down is clicked");
+		logger.log(Status.INFO, "ESS Role drop-down is clicked");
+		driver.findElement(By.xpath("(//div[@class='select-wrapper initialized'])[1]/ul/li/span[text()='"+ess+"']")).click();
+		Log.info(ess+" is selcted from the ESS Role");
+		logger.log(Status.INFO, ess+" is selcted from the ESS Role");
+
 		// Select the Supervisor Role as Default Supervisor
-		String supervisor=x_sheet.getRow(rownuber).getCell(6).getStringCellValue();
+		String supervisorRole=ExcelConfig.getCellData(rowNum_AddUser, Constant.col_supervisorRole, sheetName);
 		driver.findElement(By.xpath("(//div[@class='select-wrapper initialized'])[2]/input")).click();
-		System.out.println("supervisor role drop -down is selected");
-		driver.findElement(By.xpath("(//div[@class='select-wrapper initialized'])[2]/ul/li/span[text()='"+supervisor+"']")).click();
-		System.out.println(supervisor+ "is selected as Supervisor role.");
+		Log.info("Supervisor Role drop-down is clicked");
+		logger.log(Status.INFO, "Supervisor Role drop-down is clicked");
+		Thread.sleep(1000);
+		driver.findElement(By.xpath("(//div[@class='select-wrapper initialized'])[2]/ul/li/span[text()='"+supervisorRole+"']")).click();
+		Log.info(supervisorRole+" role is selected from Supervisor role");
+		logger.log(Status.INFO, supervisorRole+" role is selected from Supervisor role");
 
 		// Select the Admin Role as Regional HR Manager
-		String adminRole= x_sheet.getRow(rownuber).getCell(7).getStringCellValue();
+		String adminRole=ExcelConfig.getCellData(rowNum_AddUser, Constant.col_adminRole, sheetName);
 		driver.findElement(By.xpath("(//div[@class='select-wrapper initialized'])[3]/input")).click();
-		System.out.println("Admin role  drop down  is selected.");
+		Log.info("Admin Role drop-down is clicked");
+		logger.log(Status.INFO, "Admin Role drop-down is clicked");
+		
 		Thread.sleep(1000);
 		driver.findElement(By.xpath("(//div[@class='select-wrapper initialized'])[3]/ul/li/span[text()='"+adminRole+"']")).click();
-		System.out.println(adminRole+ " is selected as Admin role ");
+		Log.info(adminRole+" is selected from the Admin Role drop-down");
+		logger.log(Status.INFO, adminRole+" is selected from the Admin Role drop-down");
 
 		// Select the Status as Enabled
-		String status= x_sheet.getRow(rownuber).getCell(8).getStringCellValue();
+		String status=ExcelConfig.getCellData(rowNum_AddUser, Constant.col_status_addUser, sheetName);
 		driver.findElement(By.xpath("(//sf-decorator[@ng-repeat='item in form.items'])[9]/div/div/input")).click();
-		driver.findElement(By.xpath("(//sf-decorator[@ng-repeat='item in form.items'])[9]/div/div/ul/li/span[text()='"+status+"']"))
-				.click();
-		System.out.println(status+ " is selected status.");
+		Log.info("Status drop-down is clicked");
+		logger.log(Status.INFO, "Status drop-down is clicked");
+		driver.findElement(By.xpath("(//sf-decorator[@ng-repeat='item in form.items'])[9]/div/div/ul/li/span[text()='"+status+"']")).click();
+		Log.info(status+"Enabled is selected from the status drop-down");
+		logger.log(Status.INFO, status+" is selected from the status drop-down");
 
 		// Enter the Password as "Admin@123"
-		String userpassword= x_sheet.getRow(rownuber).getCell(9).getStringCellValue();
-		driver.findElement(By.xpath(
-				"(//input[contains(@class,'ng-pristine ng-untouched ng-valid ng-empty ng-valid-schema-form')])[1]"))
-				.sendKeys(userpassword);
-		System.out.println(userpassword+ " is entered.");
-
-		// Enter the Confirm Password as "Admin@123"
-		String confirmpassword=x_sheet.getRow(rownuber).getCell(10).getStringCellValue();
-		driver.findElement(By.xpath("//*[@id='confirmpassword']")).sendKeys(confirmpassword);
-		System.out.println(confirmpassword+ " is entered.");
-
+		String userPassword=ExcelConfig.getCellData(rowNum_AddUser, Constant.col_userPassword, sheetName);
+		driver.findElement(By.xpath("(//input[contains(@class,'ng-pristine ng-untouched ng-valid ng-empty ng-valid-schema-form')])[1]")).sendKeys(userPassword);
+		Log.info("Admin@123 is enetred as Password");
+		logger.log(Status.INFO, "Admin@123 is enetred as Password");
+		String confirmUserPassword=ExcelConfig.getCellData(rowNum_AddUser, Constant.col_ConfirmuserPassword, sheetName);	
+		driver.findElement(By.xpath("//*[@id='confirmpassword']")).sendKeys(confirmUserPassword);
+		Log.info("Admin@123 is enetred as ConfirmPassword");
+		Utils.takeScreenshot(testName+"_AddUser_1", screenshotPath);
+		logger.log(Status.INFO, "Admin@123 is enetred as ConfirmPassword", MediaEntityBuilder.createScreenCaptureFromPath(screenshotPath+testName+"_AddUser_1.jpg").build());
+		
 		// Click on Save button
 		driver.findElement(By.xpath("//a[@id='systemUserSaveBtn']")).click();
-		System.out.println("save button is clicked");
-		Thread.sleep(1000);
-
-		// Click on All Regions (If Unchecked)
-		System.out.println("all regions is clicked");
-		Thread.sleep(1000);
+		Log.info("Save button is clicked");
+		logger.log(Status.INFO, "Save button is clicked");
 
 		// Click on Save button
-		driver.findElement(By.cssSelector("a[class='modal-action waves-effect waves-green btn primary-btn']")).click();
-		System.out.println("save button is clicked.");
-		Thread.sleep(1000);
+		try{
+			wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//a[text()='Save']")));
+			Thread.sleep(3000);
+			Utils.takeScreenshot(testName+"_AddUser_2", screenshotPath);
+			driver.findElement(By.xpath("//a[text()='Save']")).click();
+			Log.info("Save button is clicked with All Regions");
+			logger.log(Status.INFO, "Save button is clicked with All Regions",MediaEntityBuilder.createScreenCaptureFromPath(screenshotPath+testName+"_AddUser_2.jpg").build());
+		}catch(Exception e){
+			Log.info("Save button is not available in All Regions");
+			logger.log(Status.INFO, "Save button is not available in All Regions");
+		}		
 
-		// Now Verify the User added or not by clicking on Filter Icon button on top of
-		// the page
+		// Now Verify the User added or not by clicking on Filter Icon button on top of the page
 		driver.findElement(By.xpath("//i[contains(text(),'ohrm_filter')]")).click();
-		System.out.println("filter button clicked");
+		Log.info("Filter button is clicked");
+		logger.log(Status.INFO, "Filter button is clicked");
 
 		// Enter the above Username value in Username textbox
 		driver.findElement(By.cssSelector("#systemuser_uname_filter")).sendKeys(username);
-		System.out.println("username added in search box");
+		Log.info(username+" is entered in search box");
+		logger.log(Status.INFO, username+" is entered in search box");
 
 		// Click on Search
-		driver.findElement(By.cssSelector(
-				"#systemUser_list_search_modal a[class='modal-action modal-close waves-effect btn primary-btn']"))
-				.click();
-		System.out.println("search button is clicked.");
+		driver.findElement(By.cssSelector("#systemUser_list_search_modal a[class='modal-action modal-close waves-effect btn primary-btn']")).click();
+		Log.info("Search button clicked");
+		logger.log(Status.INFO, "Search button clicked");
 
 		// Verify whether added user is available in the Search
-		// Result or not (If not available make test case fail)
 
-		if (driver.findElement(By.xpath("//tbody[@ng-if='!listData.staticBody']/tr/td[2]/ng-include/span"))
-				.isDisplayed()) {
-			System.out.println("Username is avilable  " + username);
+		if (driver.findElement(By.xpath("//tbody[@ng-if='!listData.staticBody']/tr/td[2]/ng-include/span")).isDisplayed()) {
+			Log.info("Username is avilable in Search Result" + username);
+			Utils.takeScreenshot(testName+"_FilterSearchResult", screenshotPath);
+			logger.log(Status.INFO, "Username is avilable in Search Result" + username, MediaEntityBuilder.createScreenCaptureFromPath(screenshotPath+testName+"_FilterSearchResult.jpg").build());
 		} else {
 
-			System.out.println("U sername is not match so try again...  " + username);
-			// throw new Exception();
+			Log.info("Username is not avilable in Search Result " + username);
+			logger.log(Status.INFO, "Username is not avilable in Search Result " + username);
+			throw new Exception();
 
 		}
 
-		// Take a Screenshot with the Name as "<UserName>_Verify_Timestamp"
-
-		Date today_date = new Date();
-		String timestamp02 =st.format(today_date);
+		CommonMethods.orangeHRMLogout();
+		Utils.takeScreenshot(testName+"_LogoutPage_Admin", screenshotPath);
+		logger.log(Status.INFO, "OrangeHRM application is Loggedout for Admin user", MediaEntityBuilder.createScreenCaptureFromPath(screenshotPath+testName+"_LogoutPage_Admin.jpg").build());
 
 		
-		TakesScreenshot tst02 = (TakesScreenshot) driver;
-		File source02 = tst02.getScreenshotAs(OutputType.FILE);
-		File destination02 = new File(
-				"C:\\Selenium Catalogue\\Documents\\Screenshots\\PartialEmployeeName_" + timestamp + ".jpg");
-		FileUtils.copyFile(source02, destination02);
-		System.out.println("PartialEmployeeName Screenshot is taken.");
-
-		// Click on Global Manager HR dropdown &logout
-
-		CommonMethods.orangeHRMLogout();
-		Thread.sleep(2000);
-		// now do login again
-		CommonMethods.orangeHRMLogin(username,"Admin@123");
-		Thread.sleep(2000);
-
+		CommonMethods.orangeHRMLogin(username, "Admin@123");
+		
 		// Verify the Employee Name on Home Page
-
 		String Username_text = driver.findElement(By.xpath("//a[@id='user-dropdown']/span[1]")).getText();
-		System.out.println("username is " + Username_text);
-		System.out.println("finalemployeename is " + finalemployeename);
 		if (Username_text.equalsIgnoreCase(username)) {
-			System.out.println("Employee Name is a correct");
+			Log.info("Employee Name is matched after login screen");
+			Utils.takeScreenshot(testName+"_LoginPage_"+username, screenshotPath);
+			logger.log(Status.INFO, "LoginPage_"+username, MediaEntityBuilder.createScreenCaptureFromPath(screenshotPath+testName+"_LoginPage_"+username+".jpg").build());
 		} else {
-			System.out.println("Employee Name is a wrong");
+			Log.info("Employee Name is not matched after login screen");
+			logger.log(Status.INFO, "Employee Name is not matched after login screen");
 		}
 		
 		CommonMethods.orangeHRMLogout();
+		Utils.takeScreenshot(testName+"_LogoutPage_"+username, screenshotPath);
+		logger.log(Status.INFO,	"OrangeHRM application is Loggedout for "+username, MediaEntityBuilder.createScreenCaptureFromPath(screenshotPath+testName+"_LogoutPage_"+userName+".jpg").build());
 
-		Utils.closeBrowser(driver);
-		file_stream.close();
-		FileOutputStream File_o_Steam=new FileOutputStream(project_path+"\\test-resources\\TestData01.xlsx");
-		x_sheet.getRow(rownuber).createCell(11);
-		x_sheet.getRow(rownuber).getCell(11).setCellValue(PartialEmployeeName);
-		System.out.println(PartialEmployeeName+ " is written in excel as employee name.");
-		x_sheet.getRow(rownuber).createCell(12);
-		x_sheet.getRow(rownuber).getCell(12).setCellValue(username);
-		System.out.println("username is "+username);
+		ExcelConfig.setCellData(randomEmployeeName, rowNum_AddUser, Constant.col_employeeName_addUser, sheetName);
+		Log.info(randomEmployeeName+" is written in the excel as a EmployeeName");
+		ExcelConfig.setCellData(username, rowNum_AddUser, Constant.col_username_addUser, sheetName);
+		Log.info(username+" is writen in the excel as a UserName");
+			
 		
-		x_book.write(File_o_Steam);
-		File_o_Steam.close();
-		 
+	}
+	
+	@AfterMethod
+	public void setStatus(ITestResult result) throws Exception{
 		
-		System.out.println("Its working.. no worries... (@ ^ @)");
-
+		if(result.getStatus()==ITestResult.SUCCESS){
+			Log.info("Test Case is Passed");
+			logger.log(Status.PASS, "Test case is passed :"+result.getTestClass());
+			ExcelConfig.setCellData("Pass", rowNum_TestCases, Constant.col_status, "TestCases");
+		}else if(result.getStatus() ==ITestResult.FAILURE){
+			Log.info("Test Case is failed");
+			Utils.takeScreenshot(testName+"_Fail", screenshotPath);
+			logger.log(Status.FAIL, "Test case is Failed and testcase name is :"+result.getTestClass()+"-----"+result.getThrowable(), MediaEntityBuilder.createScreenCaptureFromPath(screenshotPath+testName+"_Fail.jpg").build());
+			ExcelConfig.setCellData("Fail", rowNum_TestCases, Constant.col_status, "TestCases");
+		}else if(result.getStatus() ==ITestResult.SKIP){
+			logger.log(Status.SKIP, "Test case is Skipped :"+result.getTestClass()+"------"+result.getThrowable());
+		}		
+		report.flush();
+		Utils.closeDriver(driver);
+		Log.endTestCase();
 	}
 
 }
