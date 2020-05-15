@@ -1,6 +1,7 @@
 package testcases;
 
 import org.apache.log4j.PropertyConfigurator;
+import org.apache.poi.util.SystemOutLogger;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
@@ -73,6 +74,7 @@ public class TC_01_AddEmployee extends Suite{
 		new BaseClass(driver);
 		logger.log(Status.INFO, browser+" browser is launched");
 		WebDriverWait wait = new WebDriverWait(driver, 15);
+		System.out.println("WebDriverWait is applied on the Driver with 15 seconds");
 		
 		String appUrl=YamlConfig.getYamlData("url");
 		driver.get(appUrl);
@@ -87,15 +89,6 @@ public class TC_01_AddEmployee extends Suite{
 		
 		// Verify the Dashboard availability on Home Page (If not available make test case fail)
 
-		if (driver.findElement(By.xpath("//li[contains(text(),'Dashboard')]")).isDisplayed()) {
-				Log.info("Dashboard is present on Homepage");
-				Utils.takeScreenshot(testName+"_HomePage", screenshotPath);
-				logger.log(Status.INFO, "Orange HRM application is logged in", MediaEntityBuilder.createScreenCaptureFromPath(screenshotPath+testName+"_HomePage.jpg").build());
-		} else {
-				Log.info("Dashboard is not present on Homepage");
-				BaseClass.status=false;
-				throw new Exception();
-		}
 		
 		driver.findElement(By.xpath("//span[@class='left-menu-title'][text()='PIM']")).click();
 		Log.info("PIM link is clicked");	
@@ -188,7 +181,7 @@ public class TC_01_AddEmployee extends Suite{
 		logger.log(Status.INFO, "FTE drop-down is clicked");
 		driver.findElement(By.xpath("//div[@id='10_inputfileddiv']/div/ul/li/span[text()='"+fte+"']")).click();
 		Log.info(fte+" is slected from FTE drop-down");
-		logger.log(Status.INFO, fte+" is slected from FTE drop-down");
+		System.out.println(fte+" is slected from FTE drop-down");
 
 		// select Dept
 		String dept=ExcelConfig.getCellData(rowNum_AddEmployee, Constant.col_department, sheetName);

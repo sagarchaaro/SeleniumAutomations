@@ -6,7 +6,10 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.OutputType;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -15,6 +18,7 @@ import org.openqa.selenium.edge.EdgeDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.ie.InternetExplorerDriver;
 import org.openqa.selenium.opera.OperaDriver;
+import org.testng.Reporter;
 
 public class Utils {
 	private static WebDriver driver;
@@ -86,5 +90,26 @@ public class Utils {
 		file.mkdir();
 		Log.info("Folder is Created with the Name :"+timeStampFormat);
 		return reportPath;
+	}
+	
+	public static void retry(WebDriver driver, By by, String arg) throws Exception{		
+		int attempts = 0;
+		while(attempts < 2) {
+			try {
+					if(arg.toLowerCase().contains("click")){
+						driver.findElement(by).click();
+					}else if(arg.toLowerCase().contains("scrollintoview")){
+						((JavascriptExecutor)driver).executeScript("arguments[0].scrollIntoView(true);", driver.findElement(by));
+					}else{
+						Reporter.log("Invalid argument provided ", true);
+						throw new Exception();
+					}
+					
+		            break;
+			} catch(StaleElementReferenceException e) {
+			
+			}
+			attempts++;
+		}		
 	}
 }
