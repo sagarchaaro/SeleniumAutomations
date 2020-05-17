@@ -79,7 +79,16 @@ public class TC_00_Login extends Suite{
 		
 
 		// Verify the Dashboard availability on Home Page (If not available make test case fail)}
-
+		if (driver.findElement(By.xpath("//li[contains(text(),'Dashboard')]")).isDisplayed()) {
+			Log.info("Dashboard is present on Homepage");
+			Utils.takeScreenshot(testName+"_HomePage", screenshotPath);
+			logger.log(Status.INFO, "Orange HRM application is logged in", MediaEntityBuilder.createScreenCaptureFromPath(screenshotPath+testName+"_HomePage.jpg").build());
+	
+		} else {
+			Log.info("Dashboard is not present on Homepage");
+			BaseClass.status=false;
+			throw new Exception();
+		}
 		CommonMethods.orangeHRMLogout();
 		Utils.takeScreenshot("LogoutPage", screenshotPath);
 		logger.log(Status.INFO, "Orange HRM application is logged out");
