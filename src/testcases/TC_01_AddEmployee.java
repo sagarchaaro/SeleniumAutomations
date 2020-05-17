@@ -149,14 +149,7 @@ public class TC_01_AddEmployee extends Suite{
 		}
 				
 		//Blood group
-		String bloodGroup=ExcelConfig.getCellData(rowNum_AddEmployee, Constant.col_bloodGroup, sheetName);
-		driver.findElement(By.xpath("//label[text()='Blood Group']//parent::div//child::input[1]")).click();
-		Log.info("Bood group is clicked");
-		logger.log(Status.INFO, "Bood group is clicked");
 		
-		driver.findElement(By.xpath("//span[text()='"+bloodGroup+"']")).click();
-		Log.info(bloodGroup+" is selected from Blood group drop-down");
-		logger.log(Status.INFO, bloodGroup+" is selected from Blood group drop-down");
 
 		// Select hobbies
 		String hobbies=ExcelConfig.getCellData(rowNum_AddEmployee, Constant.col_hobbies, sheetName);
