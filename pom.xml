@@ -88,7 +88,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
 	<dependency>
 	    <groupId>org.apache.maven.shared</groupId>
 	    <artifactId>maven-shared-utils</artifactId>
-	    <version>0.2</version>
+	    <version>3.3.3</version>
 	</dependency>
 	
 	<!-- https://mvnrepository.com/artifact/io.github.bonigarcia/webdrivermanager -->
